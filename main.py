@@ -10,21 +10,25 @@ url = 'https://timeout2-ovo53lgliq-uc.a.run.app'
 # body : let formData = new FormData();
 #   formData.append('file', new Blob([editor.getValue('\n')], {type : 'text/plain'}), 'file.sco');
 
+# this one is for the updated stuff
 score_str1 = """
+rtsetparams(44100, 2)
 load("STRUM2");
 load("FREEVERB")
 
 srand(3)
 
-max_dur = 30;
-tempo = 120;
+max_dur = 50;
+tempo = 100;
+
+print("hi")
 
 ////////////
 // REVERB //
 ////////////
 
-bus_config("STRUM2", "aux 0 out")
-bus_config("FREEVERB", "aux 0 in", "out 0-1")
+bus_config("STRUM2", "aux 0-1 out")
+bus_config("FREEVERB", "aux 0-1 in", "out 0-1")
 
 outskip = 0
 inskip = 0
@@ -96,11 +100,14 @@ float schedule_note(float start_time, float dur, float midi_pitch)
 
 float play_note(struct StrumNotePlay note)
 {
-    freq = cpsmidi(note.midi_pitch) + rand();
+    freq = cpsmidi(note.midi_pitch) + (rand() * note.start_time / 15);
     offset = (rand() + 1) / 4;
     amp = rand() * 8000 + 12000;
     STRUM2(note.start_time + offset, note.dur, amp, freq, 10, note.dur, (rand() + 1) / 2);
-    STRUM2(note.start_time + ((rand() + 1) / 4), note.dur, amp, freq * 2, 10, note.dur, (rand() + 1) / 2);
+    if (note.midi_pitch < 40)
+    {
+        STRUM2(note.start_time + offset, note.dur, amp + 2000, freq / 2, 10, note.dur, (rand() + 1) / 2);
+    }
     return 0;
 }
 
@@ -124,20 +131,22 @@ list limit_cursors(float depth)
     }
     all_cursors = active_cursors
 
-    if (depth == 16)
+    if (len(all_cursors) > 2000)
     {
         limited_cursors = {}
         for (i = 0; i < len(all_cursors); i = i + 1)
         {
             curs = all_cursors[i];
-            if (rand() > 0)
+            if (rand() > -0.5)
             {
                 limited_cursors[len(limited_cursors)] = curs
             }
         }
 
-        all_cursors = {all_cursors[0]}
+        all_cursors = limited_cursors
     }
+	print("Total cursors")
+	print(len(all_cursors))
 
     return all_cursors;
 }
@@ -184,11 +193,16 @@ float schedule_and_get_next(struct CursorStatus cursor)
 }
 
 //// Build the tree
-make_note_node(1.12, 2, 40, 1, -1)
-make_note_node(1.02, 2, 32, 2, 4)
-make_note_node(1.04, 2, 33, 3, -1)
-make_note_node(5, 4, 41, 0, 1)
-make_note_node(20, 4, 27, 2, -1)
+make_note_node(1.12, 1, 60, 1, -1)
+make_note_node(0.7, 1, 61, 2, 3)
+make_note_node(1.51, .5, 68, 0, 4)
+make_note_node(1.82, 2.2, 79, 2, 1)
+make_note_node(7, 2.2, 99, 5, -1)
+make_note_node(1, 4, 63, 6, -1)
+make_note_node(1, 4, 68, 7, -1)
+make_note_node(5, 4, 56, 8, -1)
+make_note_node(5, 4, 49, 6, 9)
+make_note_node(6, 4, 37, -1, 0)
 
 
 
@@ -216,9 +230,9 @@ while (quit == 0)
         all_cursors[len(all_cursors)] = new_cursors[i];
     }
 
-    all_cursors = limit_cursors()
+    all_cursors = limit_cursors(depth)
 
-    if (depth > 18)
+    if (depth > 22)
     {
         quit = 1;
     }
@@ -226,13 +240,12 @@ while (quit == 0)
     depth = depth + 1;
 }
 
-
+print(len(scheduled_notes))
 //// Playback scheduled notes
 for (i = 0; i < len(scheduled_notes); i = i + 1)
 {
     play_note(scheduled_notes[i])
 }
-
 """
 
 score_str2 = """
@@ -686,7 +699,7 @@ while (quit == 0)
 
     all_cursors = limit_cursors(depth)
 
-    if (depth > 18)
+    if (depth > 17)
     {
         quit = 1;
     }
@@ -715,6 +728,7 @@ def webrtc_request(score_str: str) -> np.ndarray:
 
 def play_np(nparr: np.ndarray):
     print("Playing back wav file with sounddevice")
+    input()
     sounddevice.play(nparr)
     sounddevice.wait()
 
