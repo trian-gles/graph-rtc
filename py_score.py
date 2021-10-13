@@ -82,8 +82,21 @@ class TreeContainer:
 
 container = TreeContainer()
 Node.container = container
-a5 = Node("A5", left_edge="G4")
-g4 = Node("G4", left_edge="F6")
-f6 = Node("F6", left_edge="A5", right_edge="D2")
-e3 = Node("E3", left_edge="G4")
-d2 = Node("D2", left_edge="E3")
+e3 = Node("E3", wait=0.7, left_edge="B2", left_max=23) #0
+b2 = Node("B2", wait = 1.11, left_edge="F#5", left_max=15, right_edge="G5", right_min=5) #1
+fs5 = Node("F#5", wait=0.51, dur=0.5, left_max=17, left_edge="E3", right_min=1, right_edge="G5")#2
+g5 = Node("G5", wait=2.82, dur=2.2, left_max=16, left_edge="F#5", right_edge="G4", right_min=6)#3
+a5 = Node("A5", wait = 7, dur=2.2, left_max=12, right_min=13, left_edge="A3", right_edge="D5")#4
+d5 = Node("D5", wait=1, dur=4, left_max=23, right_min=18, left_edge="G4", right_edge="G5")#5
+g4 = Node("G4", wait=1, dur=4, left_max=23, right_min=16, left_edge="G3", right_edge="F#5")#6
+g3 = Node("G3", wait=5, dur=4, left_max=23, right_min=15, left_edge="G#6", right_edge="F#5")#7
+g6 = Node("G6", wait=5, dur=4, left_max=20, right_min=8, left_edge="G4", right_edge="E2")#8
+e2 = Node("E2", wait=6, dur=4, right_min=8, right_edge="A3")#9
+a3 = Node("A3", wait=5, dur=4, left_max=23, left_edge="G#6")#10
+gs6 = Node("G#6", wait=5, dur=4)#11
+
+container.visualize()
+while True:
+    pass
+
+

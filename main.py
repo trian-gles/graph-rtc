@@ -720,4 +720,4 @@ def play_np(nparr: np.ndarray):
 
 
 if __name__ == "__main__":
-    play_np(webrtc_request(score_gate))
+    play_np(webrtc_request(score_str3))

@@ -224,7 +224,7 @@ while (quit == 0)
 
     all_cursors = limit_cursors(depth)
 
-    if (depth > 23)
+    if (depth > 21)
     {
         quit = 1;
     }
