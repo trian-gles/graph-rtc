@@ -4,7 +4,7 @@ load("FREEVERB")
 
 srand(3)
 
-max_dur = 50;
+max_dur = 80;
 tempo = 100;
 
 print("hi")
@@ -18,7 +18,7 @@ bus_config("FREEVERB", "aux 0-1 in", "out 0-1")
 
 outskip = 0
 inskip = 0
-dur = 60
+dur = 80
 amp = .5
 roomsize = 0.6
 predelay = .03
@@ -104,11 +104,12 @@ float play_note(struct StrumNotePlay note)
 all_cursors = {};
 new_cursors = {};
 
-limit_depths = {};
-limit_max_cursor_nums = {};
+limit_depths = {10};
+limit_max_cursor_nums = {2};
 
 list limit_cursors(float depth)
 {
+    // Remove unneeded cursors
     active_cursors = {};
     for (i = 0; i < len(all_cursors); i = i + 1)
     {
@@ -120,10 +121,22 @@ list limit_cursors(float depth)
     }
     all_cursors = active_cursors
 
-    if (len(all_cursors) > 2000)
+
+    // Determine the max number of cursors
+    max_curs = 2000;
+
+    limit_depth_index = index(limit_depths, depth);
+
+    if (limit_depth_index > -1)
+    {
+        max_curs = limit_max_cursor_nums[limit_depth_index];
+    }
+
+
+    if (len(all_cursors) > max_curs)
     {
         limited_cursors = {}
-        for (i = 0; i < 2000; i = i + 1)
+        for (i = 0; i < max_curs; i = i + 1)
         {
             curs = all_cursors[i];
             limited_cursors[len(limited_cursors)] = curs
@@ -131,8 +144,7 @@ list limit_cursors(float depth)
 
         all_cursors = limited_cursors
     }
-	print("Total cursors")
-	print(len(all_cursors))
+
 
     return all_cursors;
 }
@@ -218,7 +230,12 @@ while (quit == 0)
 
     all_cursors = limit_cursors(depth)
 
-    if (depth > 20)
+	print("depth")
+	print(depth)
+	print("Total cursors")
+	print(len(all_cursors))
+
+    if (depth > 27)
     {
         quit = 1;
     }
