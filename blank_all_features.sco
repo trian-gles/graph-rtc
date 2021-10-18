@@ -5,11 +5,13 @@ load("FREEVERB")
 TODO -
 make uncoor stop time larger
 add transition between decays and harnesses
+
+maybe a gliss in?
 */
 
 srand(4)
 
-max_dur = 20;
+max_dur = 5;
 tempo = 100;
 max_depth = 23
 max_curs = 2000
@@ -17,10 +19,11 @@ init_curs = 14
 limit_depths = {};
 limit_max_cursor_nums = {};
 hardness = 4
-upper_decay = 1
+upper_decay = .1
+// relative to the decay time of each node
 
-gliss_mode = "uncoor" // none, uncoor, coor_stop
-coor_stop_time = 15
+gliss_mode = "coor_stop" // none, uncoor, coor_stop
+coor_stop_time = 2
 // note_uncoor requires longer notes
 
 
