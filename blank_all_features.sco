@@ -3,24 +3,38 @@ load("FREEVERB")
 
 /*
 TODO -
-draw out the uncoordinated slide more!
+make uncoor stop time larger
 
-variable number of cursors to start with
 */
 
 srand(4)
 
-max_dur = 50;
+max_dur = 20;
 tempo = 100;
 max_depth = 23
 max_curs = 2000
-init_curs = 1
-limit_depths = {13};
-limit_max_cursor_nums = {2};
+init_curs = 14
+limit_depths = {};
+limit_max_cursor_nums = {};
+hardness = 4
+upper_decay = 1
 
-gliss_mode = "coor_stop" // none, uncoor, coor_stop
+gliss_mode = "uncoor" // none, uncoor, coor_stop
 coor_stop_time = 15
-// note - uncoor requires longer notes
+// note_uncoor requires longer notes
+
+
+
+////////////
+// STRUM2 //
+////////////
+
+float get_hardness()
+{
+    return hardness + rand()
+}
+
+
 
 ////////////
 // GLISS  //
@@ -30,12 +44,12 @@ float make_note_slide_uncoor(float init_pitch, float start_time, float dur, floa
 {
     if ((slide_start + slide_len) > dur)
     {
-        STRUM2(start_time, dur, amp, init_pitch, 2, dur /2, (rand() + 1) / 2)
+        STRUM2(start_time, dur, amp, init_pitch, get_hardness(), dur / upper_decay, (rand() + 1) / 2)
         return 0
     }
 
     pitch = maketable("line", "nonorm", "nointerp", 20 * dur, 0, init_pitch, slide_start, init_pitch, slide_start + slide_len, init_pitch * 4, dur, init_pitch * 4)
-    STRUM2(start_time, dur, amp, pitch, 2, dur /2, (rand() + 1) / 2)
+    STRUM2(start_time, dur, amp, pitch, get_hardness(), dur / upper_decay, (rand() + 1) / 2)
     return 0
 }
 
@@ -47,12 +61,12 @@ float make_note_slide_coor(float init_pitch, float start_time, float dur, float 
 
     if ((rel_slide_start < 0) || (rel_slide_start > (dur - 1)))
     {
-        STRUM2(start_time, dur, 20000, init_pitch, 2, dur /2, (rand() + 1) / 2)
+        STRUM2(start_time, dur, 20000, init_pitch, get_hardness(), dur / upper_decay, (rand() + 1) / 2)
         return 0
     }
 
     pitch = maketable("line", "nonorm", "nointerp", 20 * dur, 0, init_pitch, rel_slide_start, init_pitch, rel_slide_start + 1, init_pitch * 4, dur, init_pitch * 4)
-    STRUM2(start_time, dur, amp, pitch, 2, dur /2, (rand() + 1) / 2)
+    STRUM2(start_time, dur, amp, pitch, get_hardness(), dur / upper_decay, (rand() + 1) / 2)
     return 0
 }
 
@@ -66,12 +80,12 @@ float make_note_slide_coor_stop(float init_pitch, float start_time, float dur, f
     }
     else if (rel_slide_start > (dur - 1))
     {
-        STRUM2(start_time, dur, amp, init_pitch, 2, dur /2, (rand() + 1) / 2)
+        STRUM2(start_time, dur, amp, init_pitch, get_hardness(), dur / upper_decay, (rand() + 1) / 2)
     }
     else
     {
         pitch = maketable("line", "nonorm", "nointerp", amp, 0, init_pitch, rel_slide_start, init_pitch, rel_slide_start + 1, init_pitch * 4, dur, init_pitch * 4)
-        STRUM2(start_time, dur, 20000, pitch, 2, dur /2, (rand() + 1) / 2)
+        STRUM2(start_time, dur, 20000, pitch, get_hardness(), dur / upper_decay, (rand() + 1) / 2)
     }
 
     return 0
@@ -162,15 +176,15 @@ float choose_gliss(float start, float dur, float amp, float freq)
 {
     if (gliss_mode == "none")
     {
-        STRUM2(start, dur, amp, freq, 10, dur, (rand() + 1) / 2);
+        STRUM2(start, dur, amp, freq, get_hardness(), dur / upper_decay, (rand() + 1) / 2);
         if (note.midi_pitch < 40)
         {
-            STRUM2(start, dur, amp + 2000, freq / 2, 10, dur, (rand() + 1) / 2);
+            STRUM2(start, dur, amp + 2000, freq / 2, get_hardness(), dur / upper_decay, (rand() + 1) / 2);
         }
     }
     else if (gliss_mode == "uncoor")
     {
-        make_note_slide_uncoor(freq, start, dur, amp, 1, 1)
+        make_note_slide_uncoor(freq, start, dur, amp, .2, 2)
     }
     else if (gliss_mode == "coor_stop")
     {
@@ -268,6 +282,13 @@ float schedule_and_get_next(struct CursorStatus cursor)
     note_len = node.len * 60 / tempo;
     current_time = rest_len + cursor.current_time;
 
+    // if the note will last longer than the max dur, end this cursor
+    if (current_time + note_len > max_dur)
+    {
+        cursor.index = -1
+        return 0
+    }
+
     schedule_note(current_time, note_len, node.midi_pitch)
 
     //// Make a new cursor for the right branch
@@ -310,24 +331,19 @@ make_note_node(5, 4, 92, 21, -1, 8, -1)     //11
 
 
 
-//// Traverse the tree
+//// set up inital cursors
+for (i=0; i < init_curs; i += 1)
+{
+    struct CursorStatus cursor;
+    cursor.index = i;
+    cursor.current_time = 0;
+    depth = 0;
+    all_cursors[i] = cursor;
+}
 quit = 0
-struct CursorStatus cursor;
-cursor.index = 0;
-cursor.current_time = 0;
-depth = 0;
-
-all_cursors[0] = cursor;
 
 
 //// Traverse the tree
-quit = 0
-struct CursorStatus cursor;
-cursor.index = 0;
-cursor.current_time = 0;
-depth = 0;
-
-all_cursors[0] = cursor;
 
 while (quit == 0)
 {
