@@ -28,5 +28,5 @@ def play_np(nparr: np.ndarray):
 
 if __name__ == "__main__":
     #play_np(webrtc_request(score_str3))
-    score_txt = open("astral_ocean_gliss.sco")
+    score_txt = open("blank_all_features.sco")
     play_np(webrtc_request(score_txt.read()))
