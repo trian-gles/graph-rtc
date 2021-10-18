@@ -4,7 +4,7 @@ load("FREEVERB")
 /*
 TODO -
 make uncoor stop time larger
-
+add transition between decays and harnesses
 */
 
 srand(4)
