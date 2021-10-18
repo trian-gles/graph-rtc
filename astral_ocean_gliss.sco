@@ -6,6 +6,7 @@ srand(3)
 
 max_dur = 50;
 tempo = 100;
+glissandi = { 10, 15, 14, 17, 18 }
 
 ////////////
 // GLISS  //
@@ -26,35 +27,36 @@ float make_note_slide_uncoor(float init_pitch, float start_time, float dur, floa
 
 
 // all slide at the same point in time, does not halt playback
-float make_note_slide_coor(float init_pitch, float start_time, float dur, float abs_slide_start)
+float make_note_slide_coor(float init_pitch, float start_time, float dur, float amp, float abs_slide_start)
 {
     rel_slide_start = abs_slide_start - start_time
 
-    if ((rel_slide_start < 0) || (rel_slide_start > dur))
+    if ((rel_slide_start < 0) || (rel_slide_start > (dur - 1)))
     {
         STRUM2(start_time, dur, 20000, init_pitch, 2, dur /2, (rand() + 1) / 2)
         return 0
     }
 
     pitch = maketable("line", "nonorm", "nointerp", 20 * dur, 0, init_pitch, rel_slide_start, init_pitch, rel_slide_start + 1, init_pitch * 4, dur, init_pitch * 4)
-    STRUM2(start_time, dur, 20000, pitch, 2, dur /2, (rand() + 1) / 2)
+    STRUM2(start_time, dur, amp, pitch, 2, dur /2, (rand() + 1) / 2)
     return 0
 }
 
-float make_note_slide_coor_stop(float init_pitch, float start_time, float dur, float abs_slide_start)
+float make_note_slide_coor_stop(float init_pitch, float start_time, float dur, float amp, float abs_slide_start)
 {
     rel_slide_start = abs_slide_start - start_time
 
     if (rel_slide_start < 0)
     {
-        STRUM2(start_time, dur, 20000, init_pitch, 2, dur /2, 0.5)
+
     }
-    else if (rel_slide_start > dur)
+    else if (rel_slide_start > (dur - 1))
     {
+        STRUM2(start_time, dur, amp, init_pitch, 2, dur /2, 0.5)
     }
     else
     {
-        pitch = maketable("line", "nonorm", "nointerp", 20 * dur, 0, init_pitch, rel_slide_start, init_pitch, rel_slide_start + 1, init_pitch * 4, dur, init_pitch * 4)
+        pitch = maketable("line", "nonorm", "nointerp", amp, 0, init_pitch, rel_slide_start, init_pitch, rel_slide_start + 1, init_pitch * 4, dur, init_pitch * 4)
         STRUM2(start_time, dur, 20000, pitch, 2, dur /2, 0.5)
     }
 
@@ -148,11 +150,11 @@ float play_note(struct StrumNotePlay note)
     start_time = note.start_time + offset
 
 
-    // float make_note_slide_uncoor(float init_pitch, float start_time, float dur, float amp, float sslide_start)
-    make_note_slide_uncoor(freq, start_time, note.dur, amp, 0.2, 1)
+    // float make_note_slide_coor(float init_pitch, float start_time, float dur, float amp, float sslide_start)
+    make_note_slide_coor_stop(freq, start_time, note.dur, amp, 21)
     if (note.midi_pitch < 40)
     {
-        make_note_slide_uncoor(freq / 2, start_time, note.dur, amp + 2000, .1)
+        make_note_slide_uncoor(freq / 2, start_time, note.dur, amp + 2000, .2, 1)
     }
 
     return 0;
