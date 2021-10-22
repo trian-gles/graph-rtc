@@ -7,6 +7,8 @@ make uncoor stop time larger
 add transition between decays and harnesses
 
 maybe a gliss in?
+make it stop if last note ends before max_dur
+make sure right exit is used on first pass
 */
 
 srand(4)

@@ -21,7 +21,6 @@ def insert_under_comment(score: str, comment_string: str, insert_string: str):
 
 class Node:
     container = None
-    index = 0
     def __init__(self, pitch: Union[str, float], wait: float = 1, dur: float = 1, left_max: int = 20,
                  left_edge = None, right_min: int = 0, right_edge = None):
         self.pitch = pitch
@@ -31,8 +30,6 @@ class Node:
         self.left_edge = left_edge
         self.right_min = right_min
         self.right_edge = right_edge
-        self.i = Node.index
-        Node.index += 1
         #self.container.add_node(self)
 
 
@@ -45,11 +42,11 @@ class TreeContainer:
         self.limit_depths = []
 
         self.params = {
-        "max_dur": 20,
+        "max_dur": 30,
         "tempo": 100,
         "max_depth": 19,
         "max_curs": 1000,
-        "init_curs": 3,
+        "init_curs": 1,
         "limit_depths": {},
         "limit_max_cursor_nums": {},
         "hardness": 8,
@@ -58,39 +55,38 @@ class TreeContainer:
         "coor_stop_time": 20
         }
 
-    def rand_graph(self, start_intensity=0, end_intensity=5, slide=False, pitches=("A3",)):
+    def rand_graph(self, start_intensity=0, end_intensity=5, slide=False, num_nodes: int = 7, pitches=("A5",)):
         container = TreeContainer()
         Node.index = 0
         Node.container = container
         more_pitches = []
 
-        while len(more_pitches) < 7:  # make more pitches the whole family can enjoy
-            print(len(more_pitches))
-            print("Loopin")
+        while len(more_pitches) < num_nodes:  # make more pitches the whole family can enjoy
             for pitch in pitches:
-                print(len(more_pitches))
                 m = lazy_midi.str2midi(pitch)
                 if not pitch in more_pitches:
                     more_pitches.append(pitch)
                 else:
-                    add = 12
+                    add = 6
                     if randrange(4) == 0:
-                        add = randrange(10, 14)
+                        add += randrange(-3, 2)
                     p = lazy_midi.midi2str(m + add)
                     if not p in more_pitches:
                         more_pitches.append(p)
 
+                fifth = 7
                 if getrandbits(1):
-                    new_note = lazy_midi.midi2str(m + 7)
+                    fifth = 14
+                if getrandbits(1):
+                    new_note = lazy_midi.midi2str(m + fifth)
                 else:
-                    new_note = lazy_midi.midi2str(m - 7)
+                    new_note = lazy_midi.midi2str(m - fifth)
                 if not new_note in more_pitches:
                     more_pitches.append(new_note)
-        print(len(more_pitches))
-        print(Node.index)
         for p in more_pitches:
-            le = choice(more_pitches) if getrandbits(1) else None
-            re = choice(more_pitches) if getrandbits(1) else None
+            possible_edges = [pitch for pitch in more_pitches if pitch != p]
+            le = choice(possible_edges) if getrandbits(1) else None
+            re = choice(possible_edges) if getrandbits(1) else None
             self.nodes.append(Node(p, wait=uniform(0.5, 5), dur=uniform(1, 4), left_edge=le, right_edge=re))
 
 
@@ -110,9 +106,9 @@ class TreeContainer:
         colors = [t / max_wait for t in wait_times]
         colors = [0.5 for _ in wait_times]
 
-        colors = ['yellow'] + ['pink' for _ in range(len(self.nodes) - 2)]
 
         self.G.add_edges_from(edges)
+        colors = ['yellow'] + ['pink' for _ in range(len(self.G.nodes) - 1)]
 
         pos = nx.circular_layout(self.G)
         nx.draw_networkx(self.G, pos, arrows=True, cmap = plt.get_cmap('jet'), node_size=500, node_color = colors)
@@ -120,10 +116,49 @@ class TreeContainer:
         plt.draw()
         plt.pause(0.001)
 
+    def check_all_connected(self) -> List[Node]:
+        connected_nodes = []
+
+        def traverse_tree(n: Node):
+            if n in connected_nodes:
+                return
+            connected_nodes.append(n)
+            if n.left_edge:
+                traverse_tree(self.get_node_by_pitch(n.left_edge))
+            if n.right_edge:
+                traverse_tree(self.get_node_by_pitch(n.right_edge))
+
+        traverse_tree(self.nodes[0])
+
+        connected_pitches = [n.pitch for n in connected_nodes]
+        print(connected_pitches)
+        return connected_nodes
+
+    def make_all_connected(self):
+        already_connected = self.check_all_connected()
+        all_nodes = set(self.nodes)
+
+        unconnected = all_nodes.difference(set(already_connected))
+
+        for unc_node in unconnected:
+            for con_node in already_connected:
+                if not con_node.left_edge:
+                    con_node.left_edge = unc_node.pitch
+                    break
+                if not con_node.right_edge:
+                    con_node.right_edge = unc_node.pitch
+                    break
+
+
+    def get_node_by_pitch(self, pitch: Union[str, float]):
+        for n in self.nodes:
+            if n.pitch == pitch:
+                return n
+
     def index_of_node(self, pitch: Union[str, float]):
         for n in self.nodes:
             if pitch == n.pitch:
-                return n.i
+                return self.nodes.index(n)
         return -1
 
     def get_rtc_score(self):
@@ -155,8 +190,8 @@ def test_rand():
     print("Testing random graph")
     container = TreeContainer()
     Node.container = container
-    container.rand_graph()
-    print("made it")
+    container.rand_graph(num_nodes=9)
+    container.make_all_connected()
     container.visualize()
     container.listen()
 
