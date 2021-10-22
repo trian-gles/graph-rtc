@@ -11,19 +11,19 @@ maybe a gliss in?
 
 srand(4)
 
-max_dur =
-tempo =
-max_depth =
-max_curs =
-init_curs =
-limit_depths =
-limit_max_cursor_nums =
-hardness =
-upper_decay =
+max_dur = 5;
+tempo = 100;
+max_depth = 19
+max_curs = 2000
+init_curs = 14
+limit_depths = {};
+limit_max_cursor_nums = {};
+hardness = 8
+upper_decay = 1
 // relative to the decay time of each node
 
-gliss_mode =  // none, uncoor, coor_stop
-coor_stop_time =
+gliss_mode = "uncoor" // none, uncoor, coor_stop
+coor_stop_time = 2
 // note_uncoor requires longer notes
 
 
@@ -316,8 +316,20 @@ float schedule_and_get_next(struct CursorStatus cursor)
     return 0;
 }
 
-// BUILD HERE
-
+//// Build the tree
+/* rest before note, length of note, pitch, left maxdepth, left index, right mindepth, right index */
+make_note_node(0.7, 1, 50, 23, 1, 20, -1)   //0
+make_note_node(1.11, 1, 47, 15, 2, 5, 3)    //1
+make_note_node(0.51, .5, 78, 17, 0, 1, 4)   //2
+make_note_node(2.82, 2.2, 79, 16, 2, 6, 1)  //3
+make_note_node(7, 2.2, 81, 12, 10, 13, 5)   //4
+make_note_node(1, 4, 74, 23, 6, 18, 3)      //5
+make_note_node(1, 4, 67, 23, 7, 16, 2)     //6
+make_note_node(5, 4, 55, 23, 8, 15, 2)      //7
+make_note_node(5, 4, 91, 20, 6, 8, 9)       //8
+make_note_node(6, 4, 40, 0, -1, 8, 10)      //9
+make_note_node(5, 4, 57, 23, 11, 15, -1)    //10
+make_note_node(5, 4, 92, 21, -1, 8, -1)     //11
 
 
 
