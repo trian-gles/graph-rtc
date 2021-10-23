@@ -297,7 +297,7 @@ float schedule_and_get_next(struct CursorStatus cursor)
     schedule_note(current_time, note_len, node.midi_pitch)
 
     //// Make a new cursor for the right branch
-    if (cursor.depth > node.right_gate_mindepth)
+    if (cursor.depth >= node.right_gate_mindepth)
     {
         new_cursor(node.right_index, current_time, cursor.depth + 1)
     }

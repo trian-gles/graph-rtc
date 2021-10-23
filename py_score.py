@@ -90,6 +90,9 @@ class TreeContainer:
             self.nodes.append(Node(p, wait=uniform(0.5, 5), dur=uniform(1, 4), left_edge=le, right_edge=re))
 
 
+    def rand_two_branches(self):
+        """Makes a graph that flushes from one sector to another"""
+
     def add_node(self, node: Node):
         self.nodes.append(node)
 
@@ -140,15 +143,57 @@ class TreeContainer:
 
         unconnected = all_nodes.difference(set(already_connected))
 
-        for unc_node in unconnected:
-            for con_node in already_connected:
-                if not con_node.left_edge:
-                    con_node.left_edge = unc_node.pitch
-                    break
-                if not con_node.right_edge:
-                    con_node.right_edge = unc_node.pitch
-                    break
+        delete_nodes = []
 
+        for unc_node in unconnected:
+            connected = False
+            for con_node in already_connected:
+                if not con_node.left_edge and con_node.right_edge != unc_node.pitch:
+                    con_node.left_edge = unc_node.pitch
+                    connected = True
+                    break
+                if not con_node.right_edge and con_node.left_edge != unc_node.pitch:
+                    con_node.right_edge = unc_node.pitch
+                    connected = True
+                    break
+            if not connected:
+                print(f"can't connect {unc_node.pitch}")
+                delete_nodes.append(unc_node)
+
+        for n in delete_nodes:
+            self.remove_node(n)
+
+        if not self.check_loop():
+            self.make_all_connected() # repeat it till theres a loop!!
+
+    def remove_node(self, rm_node: Node):
+        """TODO needs an additional setting for repairing a broken graph"""
+        self.nodes.remove(rm_node)
+        for node in self.nodes:
+            if node.right_edge == rm_node.pitch:
+                node.right_edge = None
+            if node.left_edge == rm_node.pitch:
+                node.left_edge = None
+
+    def check_loop(self):
+        """Simply checks if there are more steps than nodes"""
+        self.loop = False
+
+        def check_loop(n: Node, depth: int):
+            depth += 1
+            if depth > len(self.nodes):
+                self.loop = True
+                return
+            if n.right_edge:
+                rn = self.get_node_by_pitch(n.right_edge)
+                check_loop(rn, depth)
+            if n.left_edge:
+                ln = self.get_node_by_pitch(n.left_edge)
+                check_loop(ln, depth)
+
+        check_loop(self.nodes[0], 0)
+
+        return self.loop
 
     def get_node_by_pitch(self, pitch: Union[str, float]):
         for n in self.nodes:
@@ -190,10 +235,13 @@ def test_rand():
     print("Testing random graph")
     container = TreeContainer()
     Node.container = container
-    container.rand_graph(num_nodes=9)
+    container.rand_graph(num_nodes=6)
     container.make_all_connected()
+    print(container.check_loop())
     container.visualize()
     container.listen()
+    with open("last_score.sco", "w") as f:
+        f.write(container.get_rtc_score())
 
 
 def test_preset():
