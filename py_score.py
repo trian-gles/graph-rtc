@@ -4,10 +4,12 @@ from typing import List, Union
 from empty_gate_score import empty_gate_score
 from main import webrtc_request, play_np
 from audiolazy import lazy_midi
-from random import randrange, getrandbits, uniform, choice
+from random import randrange, getrandbits, uniform, choice, seed
 
 with open("blank_all_features.sco") as f:
     empty_score = f.read()
+
+
 
 
 def insert_param(score: str, index_string: str, insert_string: str):
@@ -34,12 +36,10 @@ class Node:
 
 
 class TreeContainer:
-    def __init__(self, bpm: int = 120, maxdepth: int = 15):
+    """TODO: make nodes with same names doable"""
+    def __init__(self, nodes: List[Node] = None):
         self.G = nx.DiGraph()
-        self.bpm = bpm
-        self.maxdepth = maxdepth
-        self.nodes: List[Node]= []
-        self.limit_depths = []
+        self.nodes = nodes if nodes else []
 
         self.params = {
         "max_dur": 30,
@@ -55,43 +55,84 @@ class TreeContainer:
         "coor_stop_time": 20
         }
 
-    def rand_graph(self, start_intensity=0, end_intensity=5, slide=False, num_nodes: int = 7, pitches=("A5",)):
+    def merge_with_other(self, other_cont, right_gate_delay: int = None, left_gate_max: int = None) -> bool:
+        unlinked_node = self.find_unlinked_right_node()
+
+        if left_gate_max:
+            for n in self.nodes:
+                n.left_max = left_gate_max
+
+        if unlinked_node:
+            unlinked_node.right_edge = other_cont.nodes[0].pitch
+            self.nodes += other_cont.nodes.copy()
+            if right_gate_delay:
+                unlinked_node.right_min = right_gate_delay
+
+        else:
+            if right_gate_delay:
+                return False
+            unlinked_node = self.find_unlinked_left_node()
+            if unlinked_node:
+                unlinked_node.left_edge = other_cont.nodes[0].pitch
+                self.nodes += other_cont.nodes
+
+            else:
+                return False
+        return True
+
+
+
+    def find_unlinked_right_node(self):
+        for n in self.nodes:
+            if not n.right_edge:
+                return n
+
+    def find_unlinked_left_node(self):
+        for n in self.nodes:
+            if not n.left_edge:
+                return n
+
+
+    def rand_graph_intervals(self, intervals: List[int], num_nodes: int = 7, pitches=("A4",)):
         container = TreeContainer()
         Node.index = 0
         Node.container = container
-        more_pitches = []
+        more_pitches = [lazy_midi.str2midi(pitches[0])]
+        if len(intervals) < 2:
+            print("Need more intervals")
 
-        while len(more_pitches) < num_nodes:  # make more pitches the whole family can enjoy
-            for pitch in pitches:
-                m = lazy_midi.str2midi(pitch)
-                if not pitch in more_pitches:
-                    more_pitches.append(pitch)
-                else:
-                    add = 6
-                    if randrange(4) == 0:
-                        add += randrange(-3, 2)
-                    p = lazy_midi.midi2str(m + add)
-                    if not p in more_pitches:
-                        more_pitches.append(p)
+        while len(more_pitches) < num_nodes:  # fix this so intervals are built on old pitches
+            i = 0
+            print("looping")
+            more_pitches_count = len(more_pitches)
+            while i <= more_pitches_count:
+                old_pitch = more_pitches[i]
 
-                fifth = 7
+                add = choice(intervals)
                 if getrandbits(1):
-                    fifth = 14
-                if getrandbits(1):
-                    new_note = lazy_midi.midi2str(m + fifth)
-                else:
-                    new_note = lazy_midi.midi2str(m - fifth)
-                if not new_note in more_pitches:
-                    more_pitches.append(new_note)
-        for p in more_pitches:
-            possible_edges = [pitch for pitch in more_pitches if pitch != p]
-            le = choice(possible_edges) if getrandbits(1) else None
-            re = choice(possible_edges) if getrandbits(1) else None
-            self.nodes.append(Node(p, wait=uniform(0.5, 5), dur=uniform(1, 4), left_edge=le, right_edge=re))
+                    add *= -1
+                new_pitch = old_pitch + add
+                if not new_pitch in more_pitches:
+                    more_pitches.append(new_pitch)
+
+                i += 1
+        print("pitches finished")
+
+        if len(more_pitches) > num_nodes:
+            more_pitches = more_pitches[:num_nodes]
+        for pitch in more_pitches:
+            self.nodes.append(Node(lazy_midi.midi2str(pitch), wait=uniform(0.5, 5), dur=uniform(1, 4)))
+        self.make_random_connections()
+        self.make_all_connected()
 
 
-    def rand_two_branches(self):
-        """Makes a graph that flushes from one sector to another"""
+    def make_random_connections(self):
+        for n in self.nodes:
+            possible_edges = [node.pitch for node in self.nodes if node.pitch != n.pitch]
+            if getrandbits(1):
+                n.right_edge = choice(possible_edges)
+                possible_edges.remove(n.right_edge)
+            n.left_edge = choice(possible_edges) if getrandbits(1) else None
 
     def add_node(self, node: Node):
         self.nodes.append(node)
@@ -119,6 +160,9 @@ class TreeContainer:
         plt.draw()
         plt.pause(0.001)
 
+    def hide(self):
+        plt.close()
+
     def check_all_connected(self) -> List[Node]:
         connected_nodes = []
 
@@ -138,6 +182,7 @@ class TreeContainer:
         return connected_nodes
 
     def make_all_connected(self):
+        """TODO: fix this to guarantee connections.  its not hard"""
         already_connected = self.check_all_connected()
         all_nodes = set(self.nodes)
 
@@ -145,7 +190,7 @@ class TreeContainer:
 
         delete_nodes = []
 
-        for unc_node in unconnected:
+        for unc_node in unconnected: # you can fix this pretty easily with i += 1
             connected = False
             for con_node in already_connected:
                 if not con_node.left_edge and con_node.right_edge != unc_node.pitch:
@@ -163,8 +208,12 @@ class TreeContainer:
         for n in delete_nodes:
             self.remove_node(n)
 
-        if not self.check_loop():
-            self.make_all_connected() # repeat it till theres a loop!!
+        loop = self.check_loop()
+        if not loop:
+            try:
+                self.make_all_connected() # repeat it till theres a loop!!
+            except RecursionError:
+                choice(self.nodes[1:]).right_edge = self.nodes[0].pitch
 
     def remove_node(self, rm_node: Node):
         """TODO needs an additional setting for repairing a broken graph"""
@@ -200,7 +249,7 @@ class TreeContainer:
             if n.pitch == pitch:
                 return n
 
-    def index_of_node(self, pitch: Union[str, float]):
+    def index_of_node_by_pitch(self, pitch: Union[str, float]):
         for n in self.nodes:
             if pitch == n.pitch:
                 return self.nodes.index(n)
@@ -210,8 +259,8 @@ class TreeContainer:
         node_make_str = ""
         for n in self.nodes:
             midi_pitch = lazy_midi.str2midi(n.pitch)
-            left_index = self.index_of_node(n.left_edge)
-            right_index = self.index_of_node(n.right_edge)
+            left_index = self.index_of_node_by_pitch(n.left_edge)
+            right_index = self.index_of_node_by_pitch(n.right_edge)
 
             node_make_str += f"make_note_node({n.wait}, {n.dur}, {midi_pitch}, {n.left_max}, {left_index}, {n.right_min}, {right_index})\n"
 
@@ -228,6 +277,15 @@ class TreeContainer:
         play_np(webrtc_request(rtc_score))
 
 
+saved_nodes = {}
+saved_containers = {}
+
+def save_nodes(cont: TreeContainer, name: str):
+    saved_nodes[name] = cont.nodes.copy()
+
+def save_container(cont: TreeContainer, name: str):
+    saved_containers[name] = cont
+
 
 
 
@@ -235,13 +293,33 @@ def test_rand():
     print("Testing random graph")
     container = TreeContainer()
     Node.container = container
-    container.rand_graph(num_nodes=6)
-    container.make_all_connected()
+    container.rand_graph_intervals(intervals=[3, 7], num_nodes=6)
     print(container.check_loop())
     container.visualize()
     container.listen()
     with open("last_score.sco", "w") as f:
         f.write(container.get_rtc_score())
+
+def test_merge():
+    seed(9) # 3 works, also 9
+    print("Testing random graph")
+    container = TreeContainer()
+    container.rand_graph_intervals(intervals=[3, 7], num_nodes=4)
+    # container.visualize()
+    # container.listen()
+    # container.hide()
+
+    other_container = TreeContainer()
+    other_container.rand_graph_intervals(intervals=[2, 5], num_nodes=4, pitches=("F6",))
+    # other_container.visualize()
+    # other_container.listen()
+    # other_container.hide()
+    if container.merge_with_other(other_container, 6, 8):
+        container.visualize()
+        container.listen()
+    else:
+        print("Unlinkable")
+
 
 
 def test_preset():
@@ -265,6 +343,6 @@ def test_preset():
 
 
 if __name__ == "__main__":
-    test_rand()
+    test_merge()
 
 
