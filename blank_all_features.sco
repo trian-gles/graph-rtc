@@ -304,11 +304,20 @@ float schedule_and_get_next(struct CursorStatus cursor)
 
 
     //// The cursor stays on the left branch
+
+    cursor.current_time = current_time;
+    cursor.depth = cursor.depth + 1;
+
+
     if (cursor.depth < node.left_gate_maxdepth)
     {
         cursor.index = node.left_index;
-        cursor.current_time = current_time;
-        cursor.depth = cursor.depth + 1
+
+    }
+
+    else
+    {
+        cursor.index = -1;
     }
 
 

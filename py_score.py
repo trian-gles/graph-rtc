@@ -36,7 +36,7 @@ class Node:
 
 
 class TreeContainer:
-    """TODO: make nodes with same names doable"""
+    """TODO: make nodes with same names doable.  Also make cursors copy at certain depths"""
     def __init__(self, nodes: List[Node] = None):
         self.G = nx.DiGraph()
         self.nodes = nodes if nodes else []
@@ -205,8 +205,7 @@ class TreeContainer:
                 print(f"can't connect {unc_node.pitch}")
                 delete_nodes.append(unc_node)
 
-        for n in delete_nodes:
-            self.remove_node(n)
+
 
         loop = self.check_loop()
         if not loop:
@@ -214,6 +213,8 @@ class TreeContainer:
                 self.make_all_connected() # repeat it till theres a loop!!
             except RecursionError:
                 choice(self.nodes[1:]).right_edge = self.nodes[0].pitch
+                for n in delete_nodes:
+                    self.remove_node(n)
 
     def remove_node(self, rm_node: Node):
         """TODO needs an additional setting for repairing a broken graph"""
@@ -301,7 +302,7 @@ def test_rand():
         f.write(container.get_rtc_score())
 
 def test_merge():
-    seed(9) # 3 works, also 9
+    seed(3) # 3 works, also 9
     print("Testing random graph")
     container = TreeContainer()
     container.rand_graph_intervals(intervals=[3, 7], num_nodes=4)
